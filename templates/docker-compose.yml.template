@@ -1,0 +1,53 @@
+# Minimal Docker Compose for Matrix server
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:13
+    container_name: matrix-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: synapse
+    volumes:
+      - ./data/postgresql:/var/lib/postgresql/data
+    networks:
+      - matrix-net
+
+  # Synapse Matrix server
+  synapse:
+    image: matrixdotorg/synapse:latest
+    container_name: matrix-synapse
+    restart: unless-stopped
+    environment:
+      SYNAPSE_SERVER_NAME: ${DOMAIN}
+      SYNAPSE_REPORT_STATS: "no"
+    volumes:
+      - ./data/synapse:/data
+    depends_on:
+      - postgres
+    networks:
+      - matrix-net
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: matrix-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8448:8448"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - /etc/letsencrypt/live/${DOMAIN}:/etc/ssl/certs:ro
+    depends_on:
+      - synapse
+    networks:
+      - matrix-net
+
+networks:
+  matrix-net:
+    driver: bridge

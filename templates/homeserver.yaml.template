@@ -1,0 +1,39 @@
+# Minimal Synapse configuration
+server_name: "${DOMAIN}"
+public_baseurl: "https://${DOMAIN}/"
+
+# Listeners
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    resources:
+      - names: [client, federation]
+
+# Database
+database:
+  name: psycopg2
+  args:
+    user: synapse
+    password: ${POSTGRES_PASSWORD}
+    database: synapse
+    host: postgres
+    port: 5432
+
+# Paths
+media_store_path: "/data/media_store"
+signing_key_path: "/data/signing.key"
+log_config: "/data/log.config"
+
+# Registration
+enable_registration: false
+registration_shared_secret: "${SYNAPSE_REGISTRATION_SHARED_SECRET}"
+
+# Security
+report_stats: false
+max_upload_size: 50M
+
+# Federation
+trusted_key_servers:
+  - server_name: "matrix.org"
