@@ -22,7 +22,7 @@ services:
     container_name: matrix-synapse
     restart: unless-stopped
     environment:
-      SYNAPSE_SERVER_NAME: grimilab.ddns.net
+      SYNAPSE_SERVER_NAME:
       SYNAPSE_REPORT_STATS: "no"
     volumes:
       - ./data/synapse:/data
