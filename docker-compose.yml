@@ -1,3 +1,4 @@
+# Minimal Docker Compose for Matrix server
 version: '3.8'
 
 services:
@@ -7,42 +8,34 @@ services:
     container_name: matrix-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: synapse
       POSTGRES_USER: synapse
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: CINpHp3gXh+MEUJ1jN1EFkUQdnisxKxZpda4c6811WAf
+      POSTGRES_DB: synapse
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - ./data/postgresql:/var/lib/postgresql/data
     networks:
       - matrix-net
 
-  # Synapse homeserver
+  # Synapse Matrix server
   synapse:
     image: matrixdotorg/synapse:latest
     container_name: matrix-synapse
     restart: unless-stopped
     environment:
-      SYNAPSE_SERVER_NAME: ${DOMAIN}
-      SYNAPSE_REPORT_STATS: 'no'
-      SYNAPSE_CONFIG_PATH: /data/homeserver.yaml
+      SYNAPSE_SERVER_NAME: grimilab.ddns.net
+      SYNAPSE_REPORT_STATS: "no"
     volumes:
-      - ./homeserver.yaml:/data/homeserver.yaml
-      - ./data/media_store:/data/media_store
+      - ./data/synapse:/data
     depends_on:
       - postgres
     networks:
       - matrix-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8008/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   # Nginx reverse proxy
   nginx:
     image: nginx:alpine
     container_name: matrix-nginx
     restart: unless-stopped
-    user: root
     ports:
       - "80:80"
       - "443:443"

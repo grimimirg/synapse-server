@@ -1,66 +1,64 @@
 #!/bin/bash
-set -e
 
+# Matrix Server Deployment Script
 echo "Matrix Server Deployment"
 
-# Load config
+# Load configuration
+if [ ! -f "config.env" ]; then
+    echo "ERROR: config.env not found!"
+    exit 1
+fi
+
 source config.env
 
-# Check prerequisites
+# Check if Docker is installed
 if ! command -v docker &> /dev/null; then
-    echo "ERROR: Docker not installed!"
+    echo "ERROR: Docker is not installed!"
     exit 1
 fi
 
+# Check if Docker Compose is installed
 if ! command -v docker-compose &> /dev/null; then
-    echo "ERROR: Docker Compose not installed!"
+    echo "ERROR: Docker Compose is not installed!"
     exit 1
 fi
 
-if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-    echo "ERROR: SSL certificates not found! Run setup-ssl.sh first"
+# Check SSL certificates in local ssl directory
+if [ ! -f "ssl/fullchain.pem" ] || [ ! -f "ssl/privkey.pem" ]; then
+    echo "ERROR: SSL certificates not found in ssl/ directory!"
+    echo "Run setup-ssl.sh first or copy certificates manually to ssl/"
     exit 1
+else
+    echo "✅ SSL certificates found in ssl/ directory"
 fi
 
+# Create data directories
 echo "Creating directories..."
-mkdir -p data/synapse data/postgresql
+mkdir -p data/postgres data/media_store
 
+# Generate docker-compose.yml from template
 echo "Generating configuration files..."
-# Export variables for template substitution
-export DOMAIN EMAIL POSTGRES_PASSWORD SYNAPSE_REGISTRATION_SHARED_SECRET
-
-# Generate files from templates
 envsubst < templates/docker-compose.yml.template > docker-compose.yml
+
+# Generate nginx.conf from template  
 envsubst < templates/nginx.conf.template > nginx.conf
 
-# Generate Synapse config if needed
-if [ ! -f "data/synapse/homeserver.yaml" ]; then
-    echo "Generating Synapse configuration..."
-    docker run -it --rm \
-        -v "$PWD/data/synapse:/data" \
-        -e SYNAPSE_SERVER_NAME="$DOMAIN" \
-        -e SYNAPSE_REPORT_STATS=no \
-        matrixdotorg/synapse:latest generate
-    
-    # Apply our template
-    envsubst < templates/homeserver.yaml.template > data/synapse/homeserver.yaml
-fi
+# Generate homeserver.yaml from template
+envsubst < templates/homeserver.yaml.template > homeserver.yaml
 
+# Start services
 echo "Starting services..."
-# Start database first
-docker-compose up -d postgres
+docker-compose up -d
+
+# Wait for services to be ready
+echo "Waiting for services to start..."
 sleep 10
 
-# Start Synapse
-docker-compose up -d synapse
-sleep 15
-
-# Start nginx
-docker-compose up -d nginx
-
+# Check status
 echo "Checking status..."
 docker-compose ps
 
+echo ""
 echo "Deployment completed!"
 echo "Matrix server: https://$DOMAIN"
 echo "Create admin user: docker-compose exec synapse register_new_matrix_user -c /data/homeserver.yaml http://localhost:8008"

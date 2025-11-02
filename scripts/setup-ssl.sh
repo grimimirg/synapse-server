@@ -1,56 +1,69 @@
 #!/bin/bash
-set -e
 
+# Matrix Server SSL Setup Script
 echo "Matrix Server SSL Setup"
 
-# Load config
+# Load configuration
+if [ ! -f "config.env" ]; then
+    echo "ERROR: config.env not found!"
+    exit 1
+fi
+
 source config.env
 
-# Check required variables
 if [ -z "$DOMAIN" ] || [ -z "$EMAIL" ]; then
-    echo "ERROR: Set DOMAIN and EMAIL in config.env"
+    echo "ERROR: DOMAIN and EMAIL must be set in config.env"
     exit 1
 fi
 
 echo "Domain: $DOMAIN"
 echo "Email: $EMAIL"
 
-# Install certbot
+# Install certbot if not present
 if ! command -v certbot &> /dev/null; then
     echo "Installing certbot..."
-    sudo apt update && sudo apt install -y certbot
+    sudo apt update
+    sudo apt install -y certbot
 fi
 
 # Stop nginx if running
-docker-compose stop nginx 2>/dev/null || true
+sudo systemctl stop nginx 2>/dev/null || true
 
-# Get certificates
+# Get SSL certificates
 echo "Getting SSL certificates..."
 sudo certbot certonly \
     --standalone \
-    -d "$DOMAIN" \
-    --email "$EMAIL" \
+    --non-interactive \
     --agree-tos \
-    --non-interactive
+    --email "$EMAIL" \
+    -d "$DOMAIN"
 
-# Verify certificates exist
-if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-    echo "SSL certificates obtained successfully!"
+# Create ssl directory
+mkdir -p ssl/
+
+# Copy certificates to local ssl directory
+echo "Copying certificates to local ssl directory..."
+if sudo test -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem"; then
+    sudo cp "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ssl/
+    sudo cp "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ssl/
+    
+    # Change ownership to current user
+    sudo chown $USER:$USER ssl/*
+    
+    echo "✅ SSL certificates copied to ssl/ directory"
+    
+    # Verify certificates
+    ls -la ssl/
 else
     echo "ERROR: Certificate files not found!"
     exit 1
 fi
 
-# Setup auto-renewal
-echo "Setting up auto-renewal..."
-cat > ~/renew-cert.sh << EOF
-#!/bin/bash
-docker-compose stop nginx
-sudo certbot renew --quiet
-docker-compose start nginx
-EOF
+# Setup certificate renewal
+echo "Setting up automatic certificate renewal..."
+sudo crontab -l 2>/dev/null | grep -q "certbot renew" || {
+    (sudo crontab -l 2>/dev/null; echo "0 12 * * * certbot renew --quiet --deploy-hook 'cp /etc/letsencrypt/live/$DOMAIN/*.pem /home/$USER/synapse-server/ssl/ && chown $USER:$USER /home/$USER/synapse-server/ssl/*'") | sudo crontab -
+}
 
-chmod +x ~/renew-cert.sh
-(crontab -l 2>/dev/null; echo "0 3 1 * * ~/renew-cert.sh") | crontab -
-
-echo "SSL setup completed!"
+echo "SSL setup completed successfully!"
+echo "Certificates are in: $(pwd)/ssl/"
