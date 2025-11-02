@@ -3,13 +3,27 @@
 # Matrix Server Deployment Script
 echo "Matrix Server Deployment"
 
-# Load configuration
+# Load main configuration
 if [ ! -f "config.env" ]; then
     echo "ERROR: config.env not found!"
     exit 1
 fi
 
 source config.env
+
+# Load domain configuration from .env (if exists)
+if [ -f ".env" ]; then
+    echo "Loading domain configuration from .env..."
+    export $(cat nginx.env | grep -v '^#' | xargs)
+    echo "Domain set to: $DOMAIN"
+else
+    echo "WARNING: nginx.env file not found, using DOMAIN from config.env"
+    if [ -z "$DOMAIN" ]; then
+        echo "ERROR: DOMAIN not defined in config.env or .env!"
+        echo "Create .env file with: DOMAIN=your-domain.com"
+        exit 1
+    fi
+fi
 
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
@@ -40,8 +54,9 @@ mkdir -p data/postgres data/media_store
 echo "Generating configuration files..."
 envsubst < templates/docker-compose.yml.template > docker-compose.yml
 
-# Generate nginx.conf from template  
-envsubst < templates/nginx.conf.template > nginx.conf
+# Generate nginx.conf from template
+echo "Generating nginx.conf with DOMAIN=$DOMAIN..."
+envsubst '${DOMAIN}' < templates/nginx.conf.template > nginx.conf
 
 # Generate homeserver.yaml from template
 envsubst < templates/homeserver.yaml.template > homeserver.yaml
