@@ -86,7 +86,7 @@ SYNAPSE_REGISTRATION_SHARED_SECRET=your_very_long_random_secret
 ####  - Edit the nginx configuration file
 
 ```
-nano nginx.env
+nano .env
 ```
 
 Set your domain value:
