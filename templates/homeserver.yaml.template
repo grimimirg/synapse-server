@@ -32,6 +32,12 @@ log_config: "/data/log.config"
 enable_registration: false
 registration_shared_secret: "${SYNAPSE_REGISTRATION_SHARED_SECRET}"
 
+# User Directory
+user_directory:
+  enabled: true
+  search_all_users: true
+  prefer_local_users: true
+
 # Security
 report_stats: false
 max_upload_size: 50M
