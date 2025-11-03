@@ -59,10 +59,10 @@ fi
 echo "Creating directories..."
 mkdir -p data/postgres data/media_store
 
-# Generate docker-compose.yml from template
+# Generate docker-compose.yaml from template
 echo "Generating configuration files..."
 export DOMAIN POSTGRES_PASSWORD
-envsubst < templates/docker-compose.yml.template > docker-compose.yml
+envsubst < templates/docker-compose.yaml.template > docker-compose.yaml
 
 # Generate nginx.conf from template using sed (more reliable)
 echo "Generating nginx.conf with DOMAIN=$DOMAIN..."

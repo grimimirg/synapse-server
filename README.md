@@ -437,7 +437,7 @@ sudo rm -rf data/
 ```
 synapse-server/
 ├── config.env                 # Main configuration file
-├── docker-compose.yml         # Generated from template
+├── docker-compose.yaml         # Generated from template
 ├── nginx.conf                 # Generated from template  
 ├── homeserver.yaml            # Generated from template
 ├── scripts/
@@ -446,7 +446,7 @@ synapse-server/
 │   ├── create-user.sh        # Interactive user creation
 │   └── batch-create-users.sh # Batch user creation
 ├── templates/
-│   ├── docker-compose.yml.template
+│   ├── docker-compose.yaml.template
 │   ├── nginx.conf.template
 │   └── homeserver.yaml.template
 ├── ssl/

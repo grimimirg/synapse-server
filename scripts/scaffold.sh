@@ -7,7 +7,7 @@ touch scripts/setup-ssl.sh
 touch scripts/deploy-matrix.sh
 
 # Create the template files
-touch templates/docker-compose.yml.template
+touch templates/docker-compose.yaml.template
 touch templates/nginx.conf.template
 touch templates/homeserver.yaml.template
 
