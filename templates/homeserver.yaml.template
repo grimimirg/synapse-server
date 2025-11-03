@@ -20,6 +20,8 @@ database:
     database: synapse
     host: postgres
     port: 5432
+    cp_min: 5
+    cp_max: 10
 
 # Paths
 media_store_path: "/data/media_store"
@@ -37,3 +39,4 @@ max_upload_size: 50M
 # Federation
 trusted_key_servers:
   - server_name: "matrix.org"
+suppress_key_server_warning: true

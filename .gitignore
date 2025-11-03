@@ -2,3 +2,6 @@
 data
 ssl
 .idea
+
+docker-compose.yml
+homeserver.yaml

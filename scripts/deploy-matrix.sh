@@ -9,21 +9,30 @@ if [ ! -f "config.env" ]; then
     exit 1
 fi
 
+# Export all variables from config.env
+set -a
 source config.env
+set +a
 
 # Load domain configuration from .env (if exists)
 if [ -f ".env" ]; then
     echo "Loading domain configuration from .env..."
-    export $(cat nginx.env | grep -v '^#' | xargs)
+    set -a
+    source .env
+    set +a
     echo "Domain set to: $DOMAIN"
 else
-    echo "WARNING: nginx.env file not found, using DOMAIN from config.env"
-    if [ -z "$DOMAIN" ]; then
-        echo "ERROR: DOMAIN not defined in config.env or .env!"
-        echo "Create .env file with: DOMAIN=your-domain.com"
-        exit 1
-    fi
+    echo "WARNING: .env file not found, using DOMAIN from config.env"
 fi
+
+# Verify DOMAIN is set
+if [ -z "$DOMAIN" ]; then
+    echo "ERROR: DOMAIN not defined in config.env or .env!"
+    echo "Please set DOMAIN in one of these files"
+    exit 1
+fi
+
+echo "Using DOMAIN: $DOMAIN"
 
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
@@ -43,7 +52,7 @@ if [ ! -f "ssl/fullchain.pem" ] || [ ! -f "ssl/privkey.pem" ]; then
     echo "Run setup-ssl.sh first or copy certificates manually to ssl/"
     exit 1
 else
-    echo "✅ SSL certificates found in ssl/ directory"
+    echo "SSL certificates found in ssl/ directory"
 fi
 
 # Create data directories
@@ -52,14 +61,43 @@ mkdir -p data/postgres data/media_store
 
 # Generate docker-compose.yml from template
 echo "Generating configuration files..."
+export DOMAIN POSTGRES_PASSWORD
 envsubst < templates/docker-compose.yml.template > docker-compose.yml
 
-# Generate nginx.conf from template
+# Generate nginx.conf from template using sed (more reliable)
 echo "Generating nginx.conf with DOMAIN=$DOMAIN..."
-envsubst '${DOMAIN}' < templates/nginx.conf.template > nginx.conf
+sed -e "s/\${DOMAIN}/$DOMAIN/g" \
+    -e 's/${DOLLAR}/$/g' \
+    templates/nginx.conf.template > nginx.conf
+
+# Verify nginx.conf was generated correctly
+if grep -q '${DOMAIN}' nginx.conf; then
+    echo "ERROR: DOMAIN variable was not substituted in nginx.conf!"
+    exit 1
+fi
+
+echo "nginx.conf generated successfully"
 
 # Generate homeserver.yaml from template
-envsubst < templates/homeserver.yaml.template > homeserver.yaml
+echo "Generating homeserver.yaml..."
+envsubst < templates/homeserver.yaml.template > data/homeserver.yaml
+
+# Generate log.config from template
+echo "Generating log.config..."
+cp templates/log.config.template data/log.config
+
+# Set correct permissions
+echo "Setting permissions..."
+if [ "$EUID" -eq 0 ]; then
+    chown -R 991:991 data/
+    echo "Permissions set for Synapse user (991:991)"
+else
+    echo "Warning: Not running as root. Setting permissions..."
+    sudo chown -R 991:991 data/ || echo "Could not set ownership, continuing anyway..."
+fi
+chmod -R 755 data/
+chmod 644 data/homeserver.yaml 2>/dev/null || true
+chmod 644 data/log.config 2>/dev/null || true
 
 # Start services
 echo "Starting services..."
