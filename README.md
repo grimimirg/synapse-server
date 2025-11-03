@@ -62,11 +62,11 @@ chmod +x scripts/*.sh
 
 ### 2\. Configure Environment
 
+#### - Edit the main configuration file
+
 ```
-# Edit the main configuration file
 nano config.env
 ```
-
 Set your values:
 
 ```
@@ -81,6 +81,19 @@ POSTGRES_PASSWORD=your_secure_database_password
 
 # Registration secret (use a random string)
 SYNAPSE_REGISTRATION_SHARED_SECRET=your_very_long_random_secret
+```
+
+####  - Edit the nginx configuration file
+
+```
+nano nginx.env
+```
+
+Set your domain value:
+
+```
+# Your domain name
+DOMAIN=yourdomain.com
 ```
 
 ### 3\. Generate SSL Certificates
