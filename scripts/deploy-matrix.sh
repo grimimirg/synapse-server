@@ -1,7 +1,10 @@
 #!/bin/bash
 
+cd "$(dirname "$0")/.." || exit 1
+
 # Matrix Server Deployment Script
 echo "Matrix Server Deployment"
+echo "Current directory: $(pwd)"
 
 # Load main configuration
 if [ ! -f "config.env" ]; then
@@ -59,10 +62,20 @@ fi
 echo "Creating directories..."
 mkdir -p data/postgres data/media_store
 
+if [ ! -f "templates/docker-compose.yaml.template" ]; then
+    echo "ERROR: templates/docker-compose.yaml.template not found!"
+    exit 1
+fi
+
 # Generate docker-compose.yaml from template
 echo "Generating configuration files..."
 export DOMAIN POSTGRES_PASSWORD
 envsubst < templates/docker-compose.yaml.template > docker-compose.yaml
+
+if [ ! -f "templates/nginx.conf.template" ]; then
+    echo "ERROR: templates/nginx.conf.template not found!"
+    exit 1
+fi
 
 # Generate nginx.conf from template using sed (more reliable)
 echo "Generating nginx.conf with DOMAIN=$DOMAIN..."
@@ -78,9 +91,19 @@ fi
 
 echo "nginx.conf generated successfully"
 
+if [ ! -f "templates/homeserver.yaml.template" ]; then
+    echo "ERROR: templates/homeserver.yaml.template not found!"
+    exit 1
+fi
+
 # Generate homeserver.yaml from template
 echo "Generating homeserver.yaml..."
 envsubst < templates/homeserver.yaml.template > data/homeserver.yaml
+
+if [ ! -f "templates/log.config.template" ]; then
+    echo "ERROR: templates/log.config.template not found!"
+    exit 1
+fi
 
 # Generate log.config from template
 echo "Generating log.config..."
