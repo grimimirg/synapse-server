@@ -65,4 +65,4 @@ while IFS=':' read -r username password is_admin || [ -n "$username" ]; do
     
 done < users.txt
 
-echo "Batch user creation completed!"
+echo "Batch users creation completed!"

@@ -1,10 +1,11 @@
 #!/bin/bash
 
-cd "$(dirname "$0")/.." || exit 1
+PARENT_DIR=$(cd "$(dirname "$0")/.." && pwd)
+cd "$PARENT_DIR" || exit 1
 
 # Matrix Server Deployment Script
 echo "Matrix Server Deployment"
-echo "Current directory: $(pwd)"
+echo "DEBUG: Current directory: $(pwd)"
 
 # Load main configuration
 if [ ! -f "config.env" ]; then
@@ -126,6 +127,9 @@ chmod 644 data/log.config 2>/dev/null || true
 echo "Starting services..."
 docker-compose up -d
 
+echo "Deployment completed!"
+echo "Matrix server: https://$DOMAIN"
+
 # Wait for services to be ready
 echo "Waiting for services to start..."
 sleep 10
@@ -133,8 +137,3 @@ sleep 10
 # Check status
 echo "Checking status..."
 docker-compose ps
-
-echo ""
-echo "Deployment completed!"
-echo "Matrix server: https://$DOMAIN"
-echo "Create admin user: docker-compose exec synapse register_new_matrix_user -c /data/homeserver.yaml http://localhost:8008"
